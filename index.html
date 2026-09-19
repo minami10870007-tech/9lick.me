@@ -174,23 +174,23 @@ ul{margin:0;padding:0;list-style:none}
   padding-inline:3px;color:var(--ink);
 }
 
-/* ================= hero banner (key visual) ================= */
-.kv{margin:0;position:relative;z-index:3;background:#F8D7E6;border-bottom:var(--bw) solid var(--line);line-height:0}
-.kv img{
-  display:block;width:100%;max-width:100%;
-  aspect-ratio:1671/941;max-height:min(50vh,450px);
-  object-fit:cover;object-position:50% 46%;
+/* ================= hero artwork (key visual) ================= */
+.kv{margin:0 0 clamp(38px,5vw,58px);position:relative}
+.kv-frame{
+  display:block;overflow:hidden;line-height:0;background:#F9DCEA;
+  border:var(--bw) solid var(--line);border-radius:22px;box-shadow:var(--sh-lg);
 }
+.kv-frame img{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:1672/941}
 .kv-tag{
-  position:absolute;left:var(--gut);bottom:-17px;z-index:2;
+  position:absolute;left:20px;bottom:-16px;z-index:2;
   font-family:var(--f-mono);font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
   background:var(--band-yellow);color:var(--band-ink);
   border:var(--bw) solid var(--band-ink);border-radius:999px;padding:4px 15px 5px;
   box-shadow:var(--sh-sm);transform:rotate(-1.5deg);line-height:1.6;
 }
 @media (max-width:700px){
-  .kv img{max-height:none;object-position:50% 50%}
-  .kv-tag{font-size:10px;padding:3px 12px 4px;bottom:-15px}
+  .kv-frame{border-radius:16px}
+  .kv-tag{font-size:10px;padding:3px 12px 4px;bottom:-14px;left:14px}
 }
 
 /* ================= hero ================= */
@@ -409,14 +409,17 @@ select.input{appearance:none}
 <!-- ============ HOME ============ -->
 <div class="page" id="page-home">
 
-  <figure class="kv">
-    <img src="hero.png" width="1671" height="941" fetchpriority="high"
-         alt="9lick.me のキャラクターが、宇宙に浮かぶ地球と街並みを背景に、短縮されたURL「https://exm.pl/7h2Q」のバーを抱えて飛んでいるイラスト。左上に「つながるを、もっと自由に。」、右に「Shorten Share Go Further!」のコピー。">
-    <figcaption class="kv-tag">9lick.me — 短縮URL × クリック計測</figcaption>
-  </figure>
-
   <section class="hero">
-    <div class="wrap hero-grid">
+    <div class="wrap">
+      <figure class="kv">
+        <span class="kv-frame">
+          <img src="hero.png" width="1672" height="941" fetchpriority="high"
+               alt="ピンクの月に座ったキャラクターが、短縮されたURL「https://exm.pl/7h2Q」のバーを抱えているイラスト。背景は宇宙に浮かぶ街並みとUFO。「Shorten Share Go Further.」「つながるを、もっと自由に。」のコピーが添えられている。">
+        </span>
+        <figcaption class="kv-tag">9lick.me — 短縮URL × クリック計測</figcaption>
+      </figure>
+
+      <div class="hero-grid">
       <div>
         <p class="eyebrow eyebrow--jp">つながるを、もっと自由に。</p>
         <h1>長いURLを、<br><span class="sticker">4文字</span>にする。</h1>
@@ -453,6 +456,7 @@ select.input{appearance:none}
           </div>
           <p class="hint">デモのため実際のリンクは発行されません。同じURLからは、いつでも同じスラッグが出ます。</p>
         </div>
+      </div>
       </div>
     </div>
   </section>
