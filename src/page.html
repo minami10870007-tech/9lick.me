@@ -171,6 +171,9 @@ main:focus{outline:none}
    Disabled の淡色を当てるとスピナーが見えなくなるので見た目は保つ。 */
 .btn.is-loading{cursor:wait}
 .btn.is-loading .ico{display:none}
+/* 送信中に浮き上がると「押せる」と誤って伝わる */
+.btn.is-loading:hover,.btn.is-loading:active{transform:none}
+.btn-primary.is-loading:hover{box-shadow:var(--sh-pink)}
 
 /* --- Button group --- */
 .btn-group{display:inline-flex;background:var(--primary-bg);border-radius:var(--r-pill);padding:4px;gap:8px}
@@ -1204,6 +1207,12 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     /* デスクトップではボタンが消えるが、開いた状態のまま残すと
        aria-expanded が真のまま食い違う。 */
     nav.hidden = false;
+    /* ボタンは display:none になるため、フォーカスを持ったままだと
+       body へ落ちる。表に出るナビの先頭リンクへ預ける。 */
+    if(menuBtn.contains(document.activeElement)){
+      var first = nav.querySelector("a");
+      if(first) first.focus();
+    }
     menuBtn.setAttribute("aria-expanded","false");
     menuBtn.setAttribute("aria-label","メニューを開く");
   }
@@ -1569,7 +1578,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
      そうしないと非表示のページに完了メッセージが書かれ、
      次に開いたときだけ古い通知が残る。 */
   onLeave = function(from){
-    if(from !== "contact") return;
+    if(from !== "contact" || !form || !msg) return;
     /* 送信中だった場合だけ取り消して表示も消す。完了済みの案内は
        連絡先が書かれているので、戻ってきたときに読めるよう残す。 */
     if(sendTimer){
