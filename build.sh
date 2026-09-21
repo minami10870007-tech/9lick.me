@@ -18,6 +18,10 @@ OUT="${2:?usage: build.sh <src.html> <out.html>}"
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>9lick.me</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <meta name="description" content="9lick.me は短縮URLとクリック計測のサービスです。キャンペーンURLの短縮から、押された数の計測まで。">
 <meta name="theme-color" content="#FF6BBB">
 <meta property="og:title" content="9lick.me">
@@ -35,7 +39,12 @@ OUT="${2:?usage: build.sh <src.html> <out.html>}"
 </head>
 <body>
 HEAD
-  cat "$SRC"
+  # 断片側の <title> と font の <link> は Artifact 用。
+  # ここでは <head> に正しく置いたので、body へ重複させないよう取り除く。
+  sed -e '/^<title>9lick\.me<\/title>$/d' \
+      -e '/^<link rel="preconnect" href="https:\/\/fonts\./d' \
+      -e '/^<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com/d' \
+      "$SRC"
   cat <<'FOOT'
 </body>
 </html>
