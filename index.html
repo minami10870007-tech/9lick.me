@@ -190,7 +190,9 @@ main:focus{outline:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* 二重送信を防ぐため読み込み中は disabled にするが、
    Disabled の淡色を当てるとスピナーが見えなくなるので見た目は保つ。 */
-.btn.is-loading{pointer-events:none}
+/* pointer-events:none にするとクリックが背後へ貫通し、フォーカスが
+   main へ移ってしまう。二重送信はフラグ側で止めるので cursor だけ変える。 */
+.btn.is-loading{cursor:wait}
 .btn.is-loading .ico{display:none}
 .btn-primary.is-loading:disabled,.btn-primary.is-loading[aria-disabled="true"]{background:var(--primary);color:var(--surface);box-shadow:var(--sh-pink)}
 .btn-secondary.is-loading:disabled,.btn-secondary.is-loading[aria-disabled="true"]{background:var(--surface);color:var(--primary);border-color:var(--primary)}
@@ -1217,7 +1219,14 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     setNavOpen(false);
     if(returnFocus && inside) menuBtn.focus();
   }
-  function syncNav(){ if(mq.matches) setNavOpen(false); else nav.hidden = false; }
+  function syncNav(){
+    if(mq.matches){ setNavOpen(false); return; }
+    /* デスクトップではボタンが消えるが、開いた状態のまま残すと
+       aria-expanded が真のまま食い違う。 */
+    nav.hidden = false;
+    menuBtn.setAttribute("aria-expanded","false");
+    menuBtn.setAttribute("aria-label","メニューを開く");
+  }
   menuBtn.addEventListener("click", function(){ setNavOpen(nav.hidden, true); });
   document.addEventListener("keydown", function(e){
     if((e.key === "Escape" || e.key === "Esc") && mq.matches) closeNav(true);
@@ -1304,8 +1313,12 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     contact:"お問い合わせ — 9lick.me"
   };
   function known(k){ return Object.prototype.hasOwnProperty.call(TITLES, k); }
+  /* ページを離れるときに呼ぶ後始末。お問い合わせ画面が登録する。 */
+  var onLeave = null;
+  var currentKey = null;
   function show(key, moveFocus){
     if(!known(key)) key = "home";
+    if(currentKey !== null && currentKey !== key && onLeave) onLeave(currentKey, key);
     var pages = document.querySelectorAll(".page"), cur = null;
     for(var i=0;i<pages.length;i++){
       var on = pages[i].id === "page-" + key;
@@ -1321,9 +1334,13 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     if(mq.matches) setNavOpen(false);
     window.scrollTo(0,0);
     if(cur){
-      cur.style.animation = "none";
-      void cur.offsetWidth;
-      cur.style.animation = "";
+      /* 同じページを再表示するだけのときは動かさない。
+         再生し直すと、フラグメント着地位置が1pxずれる。 */
+      if(currentKey !== key){
+        cur.style.animation = "none";
+        void cur.offsetWidth;
+        cur.style.animation = "";
+      }
       watch(cur);
       /* ページが差し替わったことを支援技術にも伝えるため、
          新しいページの見出しへフォーカスを移す。 */
@@ -1332,6 +1349,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
         if(h){ h.setAttribute("tabindex","-1"); h.focus({preventScroll:true}); }
       }
     }
+    currentKey = key;
     return key;
   }
   /* 共有される形（#/service）と、JS 無効時のフォールバック用に
@@ -1355,15 +1373,17 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
       else history.replaceState({r:k}, "", "#/" + k);
     }catch(err){}
   });
-  window.addEventListener("popstate", function(){ show(keyFromHash(), true); });
-  /* ルート以外のフラグメント（スキップリンクの #main など）で
-     ページをホームに巻き戻さないよう、#/ で始まるものだけ扱う。 */
-  window.addEventListener("hashchange", function(){
+  /* ルート以外のフラグメント（#main や、将来足されるページ内リンク）で
+     ページをホームに巻き戻さないための門番。Chrome は popstate を
+     hashchange より先に発火させるので、片方だけに置いても効かない。 */
+  function onHistoryNav(){
     var h = "";
     try{ h = location.hash || ""; }catch(e){}
-    if(h.indexOf("#/") !== 0) return;
+    if(h && h.indexOf("#/") !== 0 && h.indexOf("#page-") !== 0) return;
     show(keyFromHash(), true);
-  });
+  }
+  window.addEventListener("popstate", onHistoryNav);
+  window.addEventListener("hashchange", onHistoryNav);
 
   /* スキップリンクはフラグメント遷移させず、本文へ直接フォーカスを移す。 */
   var skip = document.querySelector(".skip");
@@ -1560,6 +1580,18 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
   /* disabled 属性を立てるとフォーカスが body へ落ち、
      約0.9秒のあいだ行き場を失う。送信の抑止はフラグで行う。 */
   var sending = false;
+  var sendTimer = null;
+  /* お問い合わせ画面を離れたら送信中の処理を取り消し、結果表示も消す。
+     そうしないと非表示のページに完了メッセージが書かれ、
+     次に開いたときだけ古い通知が残る。 */
+  onLeave = function(from){
+    if(from !== "contact") return;
+    if(sendTimer){ clearTimeout(sendTimer); sendTimer = null; }
+    sending = false;
+    setLoading(false);
+    msg.className = "msg";
+    msg.textContent = "";
+  };
   function setLoading(on){
     if(on){
       submitBtn.classList.add("is-loading");
@@ -1624,7 +1656,8 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     }
     sending = true;
     setLoading(true);
-    setTimeout(function(){
+    sendTimer = setTimeout(function(){
+      sendTimer = null;
       sending = false;
       setLoading(false);
       say("is-ok", "入力内容を確認しました。現在このフォームは送信先が未接続のため、お手数ですが contact@9lick.me までご連絡ください。送信先を設定すると、この画面から直接送れるようになります。");
