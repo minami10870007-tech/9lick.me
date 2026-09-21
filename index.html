@@ -190,14 +190,8 @@ main:focus{outline:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* 二重送信を防ぐため読み込み中は disabled にするが、
    Disabled の淡色を当てるとスピナーが見えなくなるので見た目は保つ。 */
-/* pointer-events:none にするとクリックが背後へ貫通し、フォーカスが
-   main へ移ってしまう。二重送信はフラグ側で止めるので cursor だけ変える。 */
 .btn.is-loading{cursor:wait}
 .btn.is-loading .ico{display:none}
-.btn-primary.is-loading:disabled,.btn-primary.is-loading[aria-disabled="true"]{background:var(--primary);color:var(--surface);box-shadow:var(--sh-pink)}
-.btn-secondary.is-loading:disabled,.btn-secondary.is-loading[aria-disabled="true"]{background:var(--surface);color:var(--primary);border-color:var(--primary)}
-.btn-ghost.is-loading:disabled,.btn-ghost.is-loading[aria-disabled="true"]{background:var(--primary-bg);color:var(--primary)}
-.btn-tertiary.is-loading:disabled,.btn-tertiary.is-loading[aria-disabled="true"]{color:var(--primary)}
 
 /* --- Button group --- */
 .btn-group{display:inline-flex;background:var(--primary-bg);border-radius:var(--r-pill);padding:4px;gap:8px}
@@ -213,8 +207,10 @@ main:focus{outline:none}
 .card-pad{padding:clamp(20px,3vw,28px)}
 
 .page[hidden]{display:none !important}
+/* transform は使わない。translateY が効いた状態でブラウザが
+   フラグメントの着地位置を計算するため、#page-x で 1px ずれる。 */
 .page{animation:pageIn .45s var(--ease) both}
-@keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
 
 .sec{padding-block:clamp(48px,7vw,84px)}
 .sec + .sec{padding-top:0}
@@ -1220,7 +1216,12 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     if(returnFocus && inside) menuBtn.focus();
   }
   function syncNav(){
-    if(mq.matches){ setNavOpen(false); return; }
+    if(mq.matches){
+      /* 開いたまま狭い画面へ戻るとフォーカスが body へ落ちる */
+      if(nav.contains(document.activeElement)) menuBtn.focus();
+      setNavOpen(false);
+      return;
+    }
     /* デスクトップではボタンが消えるが、開いた状態のまま残すと
        aria-expanded が真のまま食い違う。 */
     nav.hidden = false;
@@ -1353,12 +1354,16 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     return key;
   }
   /* 共有される形（#/service）と、JS 無効時のフォールバック用に
-     実要素を指す形（#page-service）の両方を受け付ける。 */
-  function keyFromHash(){
+     実要素を指す形（#page-service）の両方を受け付ける。
+     前方一致で判定すると #page-anchor のようなページ内リンクまで
+     ルート扱いしてしまうので、全体を厳密に照合する。
+     戻り値 null は「ルートではないフラグメント」。 */
+  function routeFromHash(){
     var h = "";
     try{ h = location.hash || ""; }catch(e){}
-    var k = h.replace(/^#\/?/,"").replace(/^page-/,"").split("?")[0];
-    return known(k) ? k : "home";
+    if(!h || h === "#") return "home";
+    var m = /^#(?:\/|page-)([A-Za-z0-9_-]+)$/.exec(h);
+    return (m && known(m[1])) ? m[1] : null;
   }
   document.addEventListener("click", function(e){
     var a = e.target && e.target.closest ? e.target.closest("a[data-route]") : null;
@@ -1377,10 +1382,9 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
      ページをホームに巻き戻さないための門番。Chrome は popstate を
      hashchange より先に発火させるので、片方だけに置いても効かない。 */
   function onHistoryNav(){
-    var h = "";
-    try{ h = location.hash || ""; }catch(e){}
-    if(h && h.indexOf("#/") !== 0 && h.indexOf("#page-") !== 0) return;
-    show(keyFromHash(), true);
+    var k = routeFromHash();
+    if(k === null) return;
+    show(k, true);
   }
   window.addEventListener("popstate", onHistoryNav);
   window.addEventListener("hashchange", onHistoryNav);
@@ -1396,7 +1400,8 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     });
   }
   (function(){
-    var k = keyFromHash();
+    /* 初期表示だけは、ルートでないフラグメントでもホームを出す */
+    var k = routeFromHash() || "home";
     show(k, false);
     try{ history.replaceState({r:k}, "", "#/" + k); }catch(err){}
   })();
@@ -1586,17 +1591,35 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
      次に開いたときだけ古い通知が残る。 */
   onLeave = function(from){
     if(from !== "contact") return;
-    if(sendTimer){ clearTimeout(sendTimer); sendTimer = null; }
-    sending = false;
-    setLoading(false);
-    msg.className = "msg";
-    msg.textContent = "";
+    /* 送信中だった場合だけ取り消して表示も消す。完了済みの案内は
+       連絡先が書かれているので、戻ってきたときに読めるよう残す。 */
+    if(sendTimer){
+      clearTimeout(sendTimer);
+      sendTimer = null;
+      sending = false;
+      setLoading(false);
+      msg.className = "msg";
+      msg.textContent = "";
+    }
+    /* 入力エラーの表示を消すときは、項目側の印も一緒に外す。
+       残すと「不正だが説明が空」という状態になる。 */
+    if(msg.className.indexOf("is-warn") !== -1){
+      msg.className = "msg";
+      msg.textContent = "";
+    }
+    clearInvalid();
   };
+  function clearInvalid(){
+    var f = form.querySelectorAll("[aria-invalid]");
+    for(var i=0;i<f.length;i++){
+      f[i].removeAttribute("aria-invalid");
+      f[i].removeAttribute("aria-describedby");
+    }
+  }
   function setLoading(on){
     if(on){
       submitBtn.classList.add("is-loading");
       submitBtn.setAttribute("aria-busy","true");
-      submitBtn.setAttribute("aria-disabled","true");
       submitLabel.textContent = "送信中…";
       /* SVG 要素は hidden プロパティを反映しないため属性で切り替える */
       submitIcon.setAttribute("hidden","");
@@ -1605,7 +1628,6 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     } else {
       submitBtn.classList.remove("is-loading");
       submitBtn.removeAttribute("aria-busy");
-      submitBtn.removeAttribute("aria-disabled");
       submitLabel.textContent = "送信する";
       submitIcon.removeAttribute("hidden");
       if(spinner && spinner.parentNode) spinner.parentNode.removeChild(spinner);
@@ -1642,11 +1664,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     else if(!mail.value.trim()){ bad = mail; why = "メールアドレスをご記入ください。"; }
     else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.value.trim())){ bad = mail; why = "メールアドレスの形式をご確認ください。"; }
     else if(!body.value.trim()){ bad = body; why = "お問い合わせの内容をご記入ください。"; }
-    var fields = [name, mail, body];
-    for(var f=0;f<fields.length;f++){
-      fields[f].removeAttribute("aria-invalid");
-      fields[f].removeAttribute("aria-describedby");
-    }
+    clearInvalid();
     if(bad){
       say("is-warn", why);
       bad.setAttribute("aria-invalid","true");
