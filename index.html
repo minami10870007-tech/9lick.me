@@ -101,9 +101,6 @@ img{max-width:100%}
 .ct-hi{fill:var(--primary);font-weight:700}
 .wrap{max-width:var(--maxw);margin-inline:auto;padding-inline:var(--gut)}
 main:focus{outline:none}
-/* JS 無効時は全ページが縦に積まれる。href="#/service" 等が着地できるよう
-   ルート名そのものを id に持つ目印を置く（JS 有効時は preventDefault で未使用）。 */
-.jump{display:block;height:0;overflow:hidden}
 .skip{
   position:absolute;inset-block-start:-100px;inset-inline-start:12px;z-index:100;
   background:var(--surface);color:var(--text);font-size:var(--fs-s);font-weight:700;
@@ -195,10 +192,10 @@ main:focus{outline:none}
    Disabled の淡色を当てるとスピナーが見えなくなるので見た目は保つ。 */
 .btn.is-loading{pointer-events:none}
 .btn.is-loading .ico{display:none}
-.btn-primary.is-loading:disabled{background:var(--primary);color:var(--surface);box-shadow:var(--sh-pink)}
-.btn-secondary.is-loading:disabled{background:var(--surface);color:var(--primary);border-color:var(--primary)}
-.btn-ghost.is-loading:disabled{background:var(--primary-bg);color:var(--primary)}
-.btn-tertiary.is-loading:disabled{color:var(--primary)}
+.btn-primary.is-loading:disabled,.btn-primary.is-loading[aria-disabled="true"]{background:var(--primary);color:var(--surface);box-shadow:var(--sh-pink)}
+.btn-secondary.is-loading:disabled,.btn-secondary.is-loading[aria-disabled="true"]{background:var(--surface);color:var(--primary);border-color:var(--primary)}
+.btn-ghost.is-loading:disabled,.btn-ghost.is-loading[aria-disabled="true"]{background:var(--primary-bg);color:var(--primary)}
+.btn-tertiary.is-loading:disabled,.btn-tertiary.is-loading[aria-disabled="true"]{color:var(--primary)}
 
 /* --- Button group --- */
 .btn-group{display:inline-flex;background:var(--primary-bg);border-radius:var(--r-pill);padding:4px;gap:8px}
@@ -558,15 +555,16 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
        5ページ中4ページに辿り着けなくなるので、全ページを展開する。 */
     .page[hidden]{display:block !important}
     .page + .page{border-top:1px solid var(--border)}
-    /* JS 無効時はヘッダーが3段に折り返すので、アンカー着地の余白を広げる */
-    html{scroll-padding-top:180px}
+    /* JS 無効時、狭い画面ではヘッダーが3段に折り返すので着地の余白を広げる。
+       広い画面では1段のままなので 76px で足りる。 */
+    @media (max-width:920px){html{scroll-padding-top:180px}}
   </style>
 </noscript>
 
 <a class="skip" href="#main">本文へスキップ</a>
 <header class="hdr">
   <div class="wrap hdr-in">
-    <a class="brand" href="#/home" data-route="home">
+    <a class="brand" href="#page-home" data-route="home">
       <svg class="orbit" viewBox="0 0 32 32" aria-hidden="true">
         <ellipse class="o-ring" cx="16" cy="16" rx="14.2" ry="6.4" fill="none" stroke-width="2.4" transform="rotate(-24 16 16)"/>
         <circle class="o-core" cx="16" cy="16" r="7"/>
@@ -575,18 +573,18 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
       <span>9lick<span class="dot">.</span>me</span>
     </a>
     <nav class="nav" id="nav" aria-label="メインメニュー">
-      <a href="#/home" data-route="home">ホーム</a>
-      <a href="#/service" data-route="service">サービス</a>
-      <a href="#/pricing" data-route="pricing">料金</a>
-      <a href="#/company" data-route="company">会社概要</a>
-      <a href="#/contact" data-route="contact">お問い合わせ</a>
+      <a href="#page-home" data-route="home">ホーム</a>
+      <a href="#page-service" data-route="service">サービス</a>
+      <a href="#page-pricing" data-route="pricing">料金</a>
+      <a href="#page-company" data-route="company">会社概要</a>
+      <a href="#page-contact" data-route="contact">お問い合わせ</a>
     </nav>
     <div class="hdr-act">
       <button class="btn btn-ghost btn-icon menu-btn" id="menuBtn" aria-label="メニューを開く" aria-expanded="false" aria-controls="nav" type="button">
         <svg class="ico ico-menu" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14"/></svg>
         <svg class="ico ico-close" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg>
       </button>
-      <a class="btn btn-primary cta-hdr" href="#/contact" data-route="contact">無料で始める</a>
+      <a class="btn btn-primary cta-hdr" href="#page-contact" data-route="contact">無料で始める</a>
     </div>
   </div>
 </header>
@@ -594,7 +592,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
 <main id="main" tabindex="-1">
 
 <!-- ==================== HOME ==================== -->
-<div class="page" id="page-home"><span class="jump" id="/home" aria-hidden="true"></span>
+<div class="page" id="page-home">
 
   <section class="hero">
     <div class="wrap">
@@ -608,11 +606,11 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
         <div>
           <p class="hero-lead">キャンペーンURLの短縮から、押された数の計測まで。リダイレクトはエッジで完結し、応答は p95 で 38ms。計測のために体験を遅くしません。</p>
           <div class="hero-btns">
-            <a class="btn btn-primary btn-lg" href="#/contact" data-route="contact">
+            <a class="btn btn-primary btn-lg" href="#page-contact" data-route="contact">
               無料で試す
               <svg class="ico ico-arw" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h11M10.5 5.5L15 10l-4.5 4.5"/></svg>
             </a>
-            <a class="btn btn-secondary btn-lg" href="#/service" data-route="service">機能を見る</a>
+            <a class="btn btn-secondary btn-lg" href="#page-service" data-route="service">機能を見る</a>
           </div>
         </div>
       </div>
@@ -749,11 +747,11 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
         <h2>まずは無料プランから。</h2>
         <p>クレジットカード登録なしで、月50リンクまで発行できます。上限に達してから検討しても遅くありません。</p>
         <div class="btns">
-          <a class="btn btn-primary btn-lg" href="#/contact" data-route="contact">
+          <a class="btn btn-primary btn-lg" href="#page-contact" data-route="contact">
             アカウントを作る
             <svg class="ico ico-arw" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h11M10.5 5.5L15 10l-4.5 4.5"/></svg>
           </a>
-          <a class="btn btn-tertiary btn-lg" href="#/pricing" data-route="pricing">料金を見る</a>
+          <a class="btn btn-tertiary btn-lg" href="#page-pricing" data-route="pricing">料金を見る</a>
         </div>
       </div>
     </div>
@@ -761,7 +759,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
 </div>
 
 <!-- ==================== SERVICE ==================== -->
-<div class="page" id="page-service" hidden><span class="jump" id="/service" aria-hidden="true"></span>
+<div class="page" id="page-service" hidden>
   <h1 class="sr">サービス</h1>
   <section class="sec">
     <div class="wrap">
@@ -904,7 +902,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
 </div>
 
 <!-- ==================== PRICING ==================== -->
-<div class="page" id="page-pricing" hidden><span class="jump" id="/pricing" aria-hidden="true"></span>
+<div class="page" id="page-pricing" hidden>
   <h1 class="sr">料金</h1>
   <section class="sec">
     <div class="wrap">
@@ -932,7 +930,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
             <li><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.9"/></svg>QRコード出力</li>
             <li><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.9"/></svg>API 100リクエスト／分</li>
           </ul>
-          <a class="btn btn-secondary btn-md" href="#/contact" data-route="contact">無料で始める</a>
+          <a class="btn btn-secondary btn-md" href="#page-contact" data-route="contact">無料で始める</a>
         </div>
 
         <div class="card plan">
@@ -946,7 +944,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
             <li><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.9"/></svg>CSV一括インポート</li>
             <li><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.9"/></svg>メンバー3名まで</li>
           </ul>
-          <a class="btn btn-secondary btn-md" href="#/contact" data-route="contact">申し込む</a>
+          <a class="btn btn-secondary btn-md" href="#page-contact" data-route="contact">申し込む</a>
         </div>
 
         <div class="card plan is-rec">
@@ -962,7 +960,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
             <li><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.9"/></svg>パスワード保護・有効期限</li>
             <li><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.9"/></svg>メンバー無制限</li>
           </ul>
-          <a class="btn btn-primary btn-md" href="#/contact" data-route="contact">申し込む</a>
+          <a class="btn btn-primary btn-md" href="#page-contact" data-route="contact">申し込む</a>
         </div>
 
         <div class="card plan">
@@ -976,7 +974,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
             <li><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.9"/></svg>監査ログ・IP制限</li>
             <li><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.9"/></svg>専任担当によるサポート</li>
           </ul>
-          <a class="btn btn-secondary btn-md" href="#/contact" data-route="contact">相談する</a>
+          <a class="btn btn-secondary btn-md" href="#page-contact" data-route="contact">相談する</a>
         </div>
       </div>
       <p class="foot-note" style="margin-top:16px">※ 発行上限を超えた場合も、既存リンクのリダイレクトは継続します。追加発行は 100リンクあたり ¥200 です。</p>
@@ -1024,7 +1022,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
 </div>
 
 <!-- ==================== COMPANY ==================== -->
-<div class="page" id="page-company" hidden><span class="jump" id="/company" aria-hidden="true"></span>
+<div class="page" id="page-company" hidden>
   <h1 class="sr">会社概要</h1>
   <section class="sec">
     <div class="wrap">
@@ -1080,7 +1078,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
 </div>
 
 <!-- ==================== CONTACT ==================== -->
-<div class="page" id="page-contact" hidden><span class="jump" id="/contact" aria-hidden="true"></span>
+<div class="page" id="page-contact" hidden>
   <h1 class="sr">お問い合わせ</h1>
   <section class="sec">
     <div class="wrap">
@@ -1165,7 +1163,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
 <footer class="ftr">
   <div class="wrap">
     <div class="ftr-in">
-      <a class="brand" href="#/home" data-route="home">
+      <a class="brand" href="#page-home" data-route="home">
         <svg class="orbit" viewBox="0 0 32 32" aria-hidden="true">
           <ellipse class="o-ring" cx="16" cy="16" rx="14.2" ry="6.4" fill="none" stroke-width="2.4" transform="rotate(-24 16 16)"/>
           <circle class="o-core" cx="16" cy="16" r="7"/>
@@ -1174,11 +1172,11 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
         <span>9lick<span class="dot">.</span>me</span>
       </a>
       <nav class="ftr-nav" aria-label="フッターメニュー">
-        <a href="#/home" data-route="home">ホーム</a>
-        <a href="#/service" data-route="service">サービス</a>
-        <a href="#/pricing" data-route="pricing">料金</a>
-        <a href="#/company" data-route="company">会社概要</a>
-        <a href="#/contact" data-route="contact">お問い合わせ</a>
+        <a href="#page-home" data-route="home">ホーム</a>
+        <a href="#page-service" data-route="service">サービス</a>
+        <a href="#page-pricing" data-route="pricing">料金</a>
+        <a href="#page-company" data-route="company">会社概要</a>
+        <a href="#page-contact" data-route="contact">お問い合わせ</a>
       </nav>
     </div>
     <div class="ftr-btm">
@@ -1229,12 +1227,12 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     if(nav.contains(e.target) || menuBtn.contains(e.target)) return;
     closeNav(false);
   });
-  /* Tab でドロワーの外へ出たら閉じる。開いたまま背後の要素へ
-     フォーカスが移ると、見えない要素を操作することになる。 */
-  nav.addEventListener("focusout", function(e){
+  /* Tab でドロワーの外へ出たら閉じる。nav の focusout だと、
+     いったんハンバーガーへ抜けた時点で以後 nav からは発火せず、
+     その先へ進んでも開いたままになる。document の focusin で見る。 */
+  document.addEventListener("focusin", function(e){
     if(!mq.matches || nav.hidden) return;
-    var to = e.relatedTarget;
-    if(!to || nav.contains(to) || menuBtn.contains(to)) return;
+    if(nav.contains(e.target) || menuBtn.contains(e.target)) return;
     setNavOpen(false);
   });
   if(mq.addEventListener) mq.addEventListener("change", syncNav);
@@ -1336,10 +1334,12 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     }
     return key;
   }
+  /* 共有される形（#/service）と、JS 無効時のフォールバック用に
+     実要素を指す形（#page-service）の両方を受け付ける。 */
   function keyFromHash(){
     var h = "";
     try{ h = location.hash || ""; }catch(e){}
-    var k = h.replace(/^#\/?/,"").split("?")[0];
+    var k = h.replace(/^#\/?/,"").replace(/^page-/,"").split("?")[0];
     return known(k) ? k : "home";
   }
   document.addEventListener("click", function(e){
@@ -1557,11 +1557,14 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
   var submitIcon = document.getElementById("submitIcon");
   var spinner = null;
 
+  /* disabled 属性を立てるとフォーカスが body へ落ち、
+     約0.9秒のあいだ行き場を失う。送信の抑止はフラグで行う。 */
+  var sending = false;
   function setLoading(on){
     if(on){
       submitBtn.classList.add("is-loading");
       submitBtn.setAttribute("aria-busy","true");
-      submitBtn.disabled = true;
+      submitBtn.setAttribute("aria-disabled","true");
       submitLabel.textContent = "送信中…";
       /* SVG 要素は hidden プロパティを反映しないため属性で切り替える */
       submitIcon.setAttribute("hidden","");
@@ -1570,7 +1573,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
     } else {
       submitBtn.classList.remove("is-loading");
       submitBtn.removeAttribute("aria-busy");
-      submitBtn.disabled = false;
+      submitBtn.removeAttribute("aria-disabled");
       submitLabel.textContent = "送信する";
       submitIcon.removeAttribute("hidden");
       if(spinner && spinner.parentNode) spinner.parentNode.removeChild(spinner);
@@ -1595,6 +1598,7 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
   }
   form.addEventListener("submit", function(e){
     e.preventDefault();
+    if(sending) return;
     var name = document.getElementById("cName");
     var mail = document.getElementById("cMail");
     var body = document.getElementById("cBody");
@@ -1618,13 +1622,12 @@ select.in{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,
       bad.focus();
       return;
     }
+    sending = true;
     setLoading(true);
     setTimeout(function(){
+      sending = false;
       setLoading(false);
       say("is-ok", "入力内容を確認しました。現在このフォームは送信先が未接続のため、お手数ですが contact@9lick.me までご連絡ください。送信先を設定すると、この画面から直接送れるようになります。");
-      /* disabled にした瞬間フォーカスが body へ飛ぶので、結果へ移す */
-      msg.setAttribute("tabindex","-1");
-      msg.focus({preventScroll:true});
     }, 900);
   });
 })();
